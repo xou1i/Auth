@@ -5,6 +5,7 @@
   let isPaying = false;
   let user = null;
   let error = null;
+  let token = null;
 
   function loginWithSuperQi() {
     isLoading = true;
@@ -32,8 +33,8 @@
           .then((data) => {
             console.log("Login success:", data);
             user = data.record;
-            // Optional: Store token if needed
-            // localStorage.setItem('token', data.token);
+            token = data.token;
+            // localStorage.setItem('token', data.token); // persist if desired
           })
           .catch((err) => {
             console.error("Login API Error:", err);
@@ -59,28 +60,53 @@
     });
   }
 
-          function pay() {
-            fetch('https://its.mouamle.space/api/payment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
-                },
-            }).then(res => res.json()).then(data => {
-                my.tradePay({
-                    paymentUrl: data.url,
-                    success: (res) => {
-                        my.alert({
-                            content: "Payment successful",
-                        });
-                    },
-                });
-            }).catch(err => {
-                my.alert({
-                    content: "Payment failed",
-                });
+  function handlePayment() {
+    if (!token) {
+      // @ts-ignore
+      my.alert({
+        content: "Please sign in before making a payment.",
+      });
+      return;
+    }
+
+    isPaying = true;
+    fetch("https://its.mouamle.space/api/payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        // @ts-ignore
+        my.tradePay({
+          paymentUrl: data.url,
+          success: () => {
+            // @ts-ignore
+            my.alert({
+              content: "Payment successful",
             });
-        }
+          },
+          fail: () => {
+            // @ts-ignore
+            my.alert({
+              content: "Payment failed",
+            });
+          },
+          complete: () => {
+            isPaying = false;
+          },
+        });
+      })
+      .catch(() => {
+        // @ts-ignore
+        my.alert({
+          content: "Payment failed",
+        });
+        isPaying = false;
+      });
+  }
 </script>
 
 <main>
