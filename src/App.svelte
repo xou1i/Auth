@@ -2,6 +2,7 @@
   // @ts-nocheck
 
   let isLoading = false;
+  let isPaying = false;
   let user = null;
   let error = null;
 
@@ -54,6 +55,29 @@
         my.alert({
           content: "Auth Failed: " + JSON.stringify(res),
         });
+      },
+    });
+  }
+
+  function handlePayment() {
+    isPaying = true;
+    // @ts-ignore - SuperQi/Hylid payment bridge
+    my.tradePay({
+      paymentUrl: "https://www.wallet.com/cashier?orderId=xxxxxxx",
+      success: (res) => {
+        // @ts-ignore
+        my.alert({
+          content: JSON.stringify(res),
+        });
+      },
+      fail: (res) => {
+        // @ts-ignore
+        my.alert({
+          content: JSON.stringify(res),
+        });
+      },
+      complete: () => {
+        isPaying = false;
       },
     });
   }
@@ -139,6 +163,19 @@
             Signing In...
           {:else}
             Continue with SuperQi
+          {/if}
+        </button>
+
+        <button
+          class="btn btn-secondary"
+          type="button"
+          on:click={handlePayment}
+          disabled={isLoading || isPaying}
+        >
+          {#if isPaying}
+            Processing Payment...
+          {:else}
+            Payment
           {/if}
         </button>
       </div>
