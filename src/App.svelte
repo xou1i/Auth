@@ -5,7 +5,6 @@
   let isPaying = false;
   let user = null;
   let error = null;
-  let token = null;
 
   function loginWithSuperQi() {
     isLoading = true;
@@ -33,8 +32,8 @@
           .then((data) => {
             console.log("Login success:", data);
             user = data.record;
-            token = data.token;
-            // localStorage.setItem('token', data.token); // persist if desired
+            // Optional: Store token if needed
+            // localStorage.setItem('token', data.token);
           })
           .catch((err) => {
             console.error("Login API Error:", err);
@@ -60,53 +59,49 @@
     });
   }
 
-  function handlePayment() {
-    if (!token) {
-      // @ts-ignore
-      my.alert({
-        content: "Please sign in before making a payment.",
-      });
-      return;
-    }
-
+  function pay() {
     isPaying = true;
-    fetch("https://its.mouamle.space/api/payment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        // @ts-ignore
-        my.tradePay({
-          paymentUrl: data.url,
-          success: () => {
-            // @ts-ignore
-            my.alert({
-              content: "Payment successful",
+    // @ts-ignore - SuperQi/Hylid payment bridge
+    fetch('https://its.mouamle.space/api/payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+            }).then(res => res.json()).then(data => {
+                if (data.paymentUrl) {
+                    // @ts-ignore
+                    my.tradePay({
+                        paymentUrl: data.paymentUrl,
+                        success: (res) => {
+                            // @ts-ignore
+                            my.alert({
+                                content: 'Payment Success: ' + JSON.stringify(res),
+                            });
+                        },
+                        fail: (res) => {
+                            // @ts-ignore
+                            my.alert({
+                                content: 'Payment Failed: ' + JSON.stringify(res),
+                            });
+                        },
+                        complete: () => {
+                            isPaying = false;
+                        },
+                    });
+                } else {
+                    throw new Error('No payment URL returned');
+                }
+            }).catch(err => {
+                console.error('Payment API Error:', err);
+                // @ts-ignore
+                my.alert({
+                    content: 'Payment Failed: ' + err.message,
+                });
+                isPaying = false;
             });
-          },
-          fail: () => {
-            // @ts-ignore
-            my.alert({
-              content: "Payment failed",
-            });
-          },
-          complete: () => {
-            isPaying = false;
-          },
-        });
-      })
-      .catch(() => {
-        // @ts-ignore
-        my.alert({
-          content: "Payment failed",
-        });
-        isPaying = false;
-      });
   }
+ 
 </script>
 
 <main>
@@ -142,6 +137,19 @@
           style="margin-top: 1.5rem; padding: 1rem; background: var(--background); border-radius: 12px; font-size: 0.9rem; color: var(--text-secondary);"
         >
           ID: {user.id}
+
+          <button
+          class="btn btn-secondary"
+          type="button"
+          on:click={handlePayment}
+          disabled={isLoading || isPaying}
+        >
+          {#if isPaying}
+            Processing Payment...
+          {:else}
+            Payment
+          {/if}
+        </button>
         </div>
       </div>
     {:else}
@@ -192,18 +200,7 @@
           {/if}
         </button>
 
-        <button
-          class="btn btn-secondary"
-          type="button"
-          on:click={handlePayment}
-          disabled={isLoading || isPaying}
-        >
-          {#if isPaying}
-            Processing Payment...
-          {:else}
-            Payment
-          {/if}
-        </button>
+        
       </div>
     {/if}
   </div>
