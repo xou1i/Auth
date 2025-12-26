@@ -187,20 +187,19 @@
           {/if}
         </button>
 
+        <button
+          class="btn btn-secondary"
+          type="button"
+          on:click={handlePayment}
+          disabled={isLoading || isPaying}
+        >
+          {#if isPaying}
+            Processing Payment...
+          {:else}
+            Payment
+          {/if}
+        </button>
       </div>
-      {/if}
-      <button
-        style="margin-top: 1rem;"
-        class="btn btn-secondary"
-        type="button"
-        on:click={handlePayment}
-        disabled={isLoading || isPaying}
-      >
-        {#if isPaying}
-          Processing Payment...
-        {:else}
-          Payment
-        {/if}
-      </button>
-    </div>
+    {/if}
+  </div>
 </main>
