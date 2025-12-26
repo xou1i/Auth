@@ -147,22 +147,7 @@
           style="margin-top: 1.5rem; padding: 1rem; background: var(--background); border-radius: 12px; font-size: 0.9rem; color: var(--text-secondary);"
         >
           ID: {user.id}
-
         </div>
-
-        <button
-          class="btn btn-secondary"
-          type="button"
-          on:click={handlePayment}
-          disabled={isLoading || isPaying}
-        >
-          {#if isPaying}
-            Processing Payment...
-          {:else}
-            Payment
-          {/if}
-        </button>
-
       </div>
     {:else}
       <!-- Login State -->
@@ -215,5 +200,21 @@
         
       </div>
     {/if}
+    <div class="auth-actions" style="margin-top: 1rem;">
+      <button
+        class="btn btn-secondary"
+        type="button"
+        on:click={handlePayment}
+        disabled={isLoading || isPaying}
+      >
+        {#if isPaying}
+          Processing Payment...
+        {:else if !token}
+          Payment (sign in first)
+        {:else}
+          Payment
+        {/if}
+      </button>
+    </div>
   </div>
 </main>
