@@ -138,7 +138,9 @@
         >
           ID: {user.id}
 
-          <button
+        </div>
+
+        <button
           class="btn btn-secondary"
           type="button"
           on:click={handlePayment}
@@ -150,7 +152,7 @@
             Payment
           {/if}
         </button>
-        </div>
+        
       </div>
     {:else}
       <!-- Login State -->
