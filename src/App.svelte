@@ -4,18 +4,17 @@
   let isLoading = false;
   let isPaying = false;
   let user = null;
+  let token = null;
   let error = null;
 
   function loginWithSuperQi() {
     isLoading = true;
     error = null;
 
-    // Call SuperQi/Hylid Bridge to get Auth Code
-    // @ts-ignore
+    // SuperQi Auth
     my.getAuthCode({
       scopes: ["auth_base", "USER_ID"],
       success: (res) => {
-        // Exchange Auth Code for Token via API
         fetch("https://its.mouamle.space/api/auth-with-superQi", {
           method: "POST",
           headers: {
@@ -26,19 +25,15 @@
           }),
         })
           .then((response) => {
-            if (!response.ok) throw new Error("Network response was not ok");
+            if (!response.ok) throw new Error("Login failed");
             return response.json();
           })
           .then((data) => {
-            console.log("Login success:", data);
             user = data.record;
-            // Optional: Store token if needed
-            // localStorage.setItem('token', data.token);
+            token = data.token;
           })
           .catch((err) => {
-            console.error("Login API Error:", err);
-            error = "Failed to sign in. Please try again.";
-            // @ts-ignore
+            error = "Failed to sign in.";
             my.alert({
               content: "Login Failed: " + err.message,
             });
@@ -47,78 +42,72 @@
             isLoading = false;
           });
       },
-      fail: (res) => {
-        console.error("Auth Code Error:", res);
+      fail: (err) => {
         isLoading = false;
         error = "Could not access auth code.";
-        // @ts-ignore
         my.alert({
-          content: "Auth Failed: " + JSON.stringify(res),
+          content: "Auth Failed: " + JSON.stringify(err),
         });
       },
     });
   }
 
   function pay() {
+    if (!user || !token) {
+      my.alert({ content: "Please login first" });
+      return;
+    }
+
     isPaying = true;
-    // @ts-ignore - SuperQi/Hylid payment bridge
-    fetch('https://its.mouamle.space/api/payment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
-                },
-            }).then(res => res.json()).then(data => {
-                if (data.paymentUrl) {
-                    // @ts-ignore
-                    my.tradePay({
-                        paymentUrl: data.paymentUrl,
-                        success: (res) => {
-                            // @ts-ignore
-                            my.alert({
-                                content: 'Payment Success: ' + JSON.stringify(res),
-                            });
-                        },
-                        fail: (res) => {
-                            // @ts-ignore
-                            my.alert({
-                                content: 'Payment Failed: ' + JSON.stringify(res),
-                            });
-                        },
-                        complete: () => {
-                            isPaying = false;
-                        },
-                    });
-                } else {
-                    throw new Error('No payment URL returned');
-                }
-            }).catch(err => {
-                console.error('Payment API Error:', err);
-                // @ts-ignore
-                my.alert({
-                    content: 'Payment Failed: ' + err.message,
-                });
-                isPaying = false;
+
+    fetch("https://its.mouamle.space/api/payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Payment API error");
+        return res.json();
+      })
+      .then((data) => {
+        if (!data.paymentUrl) throw new Error("No payment URL");
+
+        my.tradePay({
+          paymentUrl: data.paymentUrl,
+          success: (res) => {
+            my.alert({
+              content: "Payment Success: " + JSON.stringify(res),
             });
+          },
+          fail: (res) => {
+            my.alert({
+              content: "Payment Failed: " + JSON.stringify(res),
+            });
+          },
+          complete: () => {
+            isPaying = false;
+          },
+        });
+      })
+      .catch((err) => {
+        isPaying = false;
+        my.alert({
+          content: "Payment Error: " + err.message,
+        });
+      });
   }
- 
 </script>
 
 <main>
   <div class="auth-card animate-enter">
+
+    <!-- SUCCESS STATE -->
     {#if user}
-      <!-- Success State -->
       <div class="auth-header">
-        <div
-          style="display: flex; justify-content: center; margin-bottom: 1.5rem;"
-        >
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+        <div style="display:flex;justify-content:center;margin-bottom:1.5rem;">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="12" fill="#dcfce7" />
             <path
               d="M7 13L10 16L17 9"
@@ -134,72 +123,47 @@
         <p class="auth-subtitle">You are now logged in</p>
 
         <div
-          style="margin-top: 1.5rem; padding: 1rem; background: var(--background); border-radius: 12px; font-size: 0.9rem; color: var(--text-secondary);"
+          style="margin-top:1.5rem;padding:1rem;background:var(--background);
+          border-radius:12px;font-size:0.9rem;color:var(--text-secondary);"
         >
           ID: {user.id}
         </div>
       </div>
-    {:else}
-      <!-- Login State -->
-      <div class="auth-header">
-        <!-- Simple abstract logo -->
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style="margin-bottom: 1rem;"
+    {/if}
+
+    <!-- ACTIONS -->
+    <div class="auth-actions">
+      {#if error}
+        <div
+          style="color:#ef4444;font-size:0.9rem;margin-bottom:0.5rem;
+          background:#fee2e2;padding:0.5rem;border-radius:8px;"
         >
-          <rect width="24" height="24" rx="12" fill="var(--primary-light)" />
-          <path
-            d="M12 7C9.23858 7 7 9.23858 7 12C7 14.7614 9.23858 17 12 17C14.7614 17 17 14.7614 17 12"
-            stroke="var(--primary)"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <circle cx="12" cy="12" r="3" fill="var(--primary)" />
-        </svg>
+          {error}
+        </div>
+      {/if}
 
-        <h1 class="auth-title">Welcome Back</h1>
-        <p class="auth-subtitle">Sign in to access your workspace</p>
-      </div>
-
-      <div class="auth-actions">
-        {#if error}
-          <div
-            style="color: #ef4444; font-size: 0.9rem; margin-bottom: 0.5rem; background: #fee2e2; padding: 0.5rem; border-radius: 8px;"
-          >
-            {error}
-          </div>
-        {/if}
-
+      {#if !user}
         <button
           class="btn btn-primary"
           type="button"
           on:click={loginWithSuperQi}
           disabled={isLoading}
         >
-          {#if isLoading}
-            Signing In...
-          {:else}
-            Continue with SuperQi
-          {/if}
+          {isLoading ? "Signing In..." : "Continue with SuperQi"}
         </button>
+      {/if}
 
+      {#if user}
         <button
           class="btn btn-secondary"
           type="button"
-          on:click={handlePayment}
-          disabled={isLoading || isPaying}
+          on:click={pay}
+          disabled={isPaying}
         >
-          {#if isPaying}
-            Processing Payment...
-          {:else}
-            Payment
-          {/if}
+          {isPaying ? "Processing Payment..." : "Payment"}
         </button>
-      </div>
-    {/if}
+      {/if}
+    </div>
+
   </div>
 </main>
