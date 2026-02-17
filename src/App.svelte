@@ -27,7 +27,7 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            token: authCode, // 🔴 نفس كود المدرّب بالضبط
+            token: authCode,     
           }),
         })
           .then((res) => res.json())
@@ -75,13 +75,13 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": token, // 🔴 نفس المدرّب
+        "Authorization": token, 
       },
     })
       .then((res) => res.json())
       .then((data) => {
         my.tradePay({
-          paymentUrl: data.url, // 🔴 نفس المدرّب
+          paymentUrl: data.url,    
           success: () => {
             my.alert({
               content: "Payment successful",
